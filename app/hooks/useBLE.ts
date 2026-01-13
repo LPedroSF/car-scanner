@@ -13,9 +13,7 @@ export default function useBLE() {
 
     useEffect(() => {
         const subscription = bleManager.onStateChange(state => {
-            console.log("BLE State changed:", state);
             setBleState(state);
-
             if (state === State.PoweredOn) {
                 subscription.remove();
             }
@@ -91,20 +89,22 @@ export default function useBLE() {
     const scanForPeripherals = async () => {
         const hasPermission = await requestPermissions();
         if (!hasPermission) {
+            //TODO: Show some alert to user
             console.log("Permissions not granted");
             return;
         }
 
         // Check current BLE state
         const currentState = await bleManager.state();
-        console.log("Current BLE state:", currentState);
-
         if (currentState !== State.PoweredOn) {
+            //TODO: Show some alert to user
             console.log("Bluetooth not ready. Current state:", currentState);
 
             if (currentState === State.PoweredOff) {
+                //TODO: Show some alert to user
                 console.log("Please turn on Bluetooth");
             } else if (currentState === State.Unauthorized) {
+                //TODO: Show some alert to user
                 console.log("Bluetooth permission denied");
             }
             return;
@@ -112,6 +112,7 @@ export default function useBLE() {
 
         bleManager.startDeviceScan(null, null, (error, device) => {
             if (error) {
+                //TODO: Show some alert to user
                 console.log('Error scanning for devices:', error);
                 return;
             }

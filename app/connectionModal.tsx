@@ -9,6 +9,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
+    View,
 } from "react-native";
 import { Device } from "react-native-ble-plx";
 import { FONT_SIZE } from "../assets/styles/typography";
@@ -49,7 +50,6 @@ const DeviceModalListItem: FC<DeviceModalListItemProps> = (props) => {
 
 const DeviceModal: FC<DeviceModalProps> = (props) => {
     const { devices, visible, bleState, connectToPeripheral, closeModal } = props;
-
     const renderDeviceModalListItem = useCallback(
         (item: ListRenderItemInfo<Device>) => {
             return (
@@ -63,6 +63,8 @@ const DeviceModal: FC<DeviceModalProps> = (props) => {
         [closeModal, connectToPeripheral]
     );
 
+    const temp = ['device1', 'device2', 'device3', 'device4', 'device5', 'device6', 'device7', 'device8', 'device9', 'device10'];
+
     return (
         <Modal
             style={modalStyle.modalContainer}
@@ -74,11 +76,14 @@ const DeviceModal: FC<DeviceModalProps> = (props) => {
                 <Text style={modalStyle.modalTitleText}>
                     Tap on a device to connect
                 </Text>
-                <FlatList
-                    contentContainerStyle={modalStyle.modalFlatlistContiner}
-                    data={devices}
-                    renderItem={renderDeviceModalListItem}
-                />
+                <View style={modalStyle.modalFlatlistBackground}>
+                    <FlatList
+                        contentContainerStyle={modalStyle.modalFlatlistContiner}
+                        data={devices}
+                        renderItem={renderDeviceModalListItem}
+                    />
+                </View>
+
 
                 <Pressable
                     onPress={closeModal}
@@ -98,9 +103,17 @@ const modalStyle = StyleSheet.create({
         flex: 1,
         backgroundColor: "#f2f2f2",
     },
-    modalFlatlistContiner: {
+    modalFlatlistBackground: {
         flex: 1,
-        justifyContent: "center",
+        marginTop: 20,
+        backgroundColor: "#cecece35",
+        width: width * 0.9,
+        alignSelf: "center",
+        borderRadius: 12,
+        paddingVertical: 10
+    },
+    modalFlatlistContiner: {
+        flex: 1
     },
     closeButton: {
         backgroundColor: 'red',
@@ -109,6 +122,7 @@ const modalStyle = StyleSheet.create({
         paddingHorizontal: 16,
         width: width * 0.7,
         alignSelf: "center",
+        marginTop: 20,
     },
     closeButtonText: {
         fontSize: FONT_SIZE.lg,
@@ -135,18 +149,18 @@ const modalStyle = StyleSheet.create({
         textAlign: "center",
     },
     ctaButton: {
-        backgroundColor: "#FF6060",
+        borderBottomWidth: 1,
+        borderColor: "red",
         justifyContent: "center",
         alignItems: "center",
         height: 50,
         marginHorizontal: 20,
         marginBottom: 5,
-        borderRadius: 8,
+        borderRadius: 12,
     },
     ctaButtonText: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "white",
+        fontSize: FONT_SIZE.lg,
+        color: "red",
     },
 });
 
