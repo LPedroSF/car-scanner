@@ -1,10 +1,24 @@
+import { useState } from "react";
 import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FONT_SIZE } from '../assets/styles/typography';
+import Modal from "./connectionModal";
+import useBLE from "./hooks/useBLE";
 
 export default function Index() {
-  function scan() {
-    console.log('Scanning...')
+  const { allDevices, connectedDevice, bleState, connectToDevice, requestPermissions, scanForPeripherals } = useBLE();
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+
+  const scanForDevices = async () => {
+    const isPermissionsEnabled = await requestPermissions();
+    if (isPermissionsEnabled) {
+      scanForPeripherals();
+    }
+  };
+
+  function openModal() {
+    scanForDevices();
+    setIsModalVisible(true);
   }
 
   return (
@@ -21,12 +35,19 @@ export default function Index() {
           <Text style={styles.container__descText}>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. </Text>
         </View>
         <Pressable
-          onPress={() => scan()}
+          onPress={() => openModal()}
           style={styles.container__button}
         >
           <Text style={styles.container__buttonText}>Search for Scanner</Text>
         </Pressable>
       </View>
+      <Modal
+        closeModal = {() => setIsModalVisible(false)}
+        visible = {isModalVisible}
+        connectToPeripheral = {connectToDevice}
+        devices = {allDevices}
+        bleState = {bleState}
+      />
     </SafeAreaView>
   );
 }
