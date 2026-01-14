@@ -6,7 +6,7 @@ import Modal from "./connectionModal";
 import useBLE from "./hooks/useBLE";
 
 export default function Index() {
-  const { allDevices, connectedDevice, bleState, connectToDevice, requestPermissions, scanForPeripherals } = useBLE();
+  const { allDevices, connectedDevice, bleState, sendOBDCommand, connectToDevice, requestPermissions, scanForPeripherals } = useBLE();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const scanForDevices = async () => {
@@ -42,11 +42,11 @@ export default function Index() {
         </Pressable>
       </View>
       <Modal
-        closeModal = {() => setIsModalVisible(false)}
-        visible = {isModalVisible}
-        connectToPeripheral = {connectToDevice}
-        devices = {allDevices}
-        bleState = {bleState}
+        closeModal={() => setIsModalVisible(false)}
+        visible={isModalVisible}
+        connectToPeripheral={connectToDevice}
+        devices={allDevices}
+        bleState={bleState}
       />
     </SafeAreaView>
   );

@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import React, { FC, useCallback } from "react";
 import {
     Dimensions,
@@ -31,9 +32,12 @@ type DeviceModalProps = {
 const DeviceModalListItem: FC<DeviceModalListItemProps> = (props) => {
     const { item, connectToPeripheral, closeModal } = props;
 
+    const router = useRouter();
+
     const connectAndCloseModal = useCallback(() => {
         connectToPeripheral(item.item);
         closeModal();
+        router.push("/dashboard");
     }, [closeModal, connectToPeripheral, item.item]);
 
     return (
@@ -62,8 +66,6 @@ const DeviceModal: FC<DeviceModalProps> = (props) => {
         },
         [closeModal, connectToPeripheral]
     );
-
-    const temp = ['device1', 'device2', 'device3', 'device4', 'device5', 'device6', 'device7', 'device8', 'device9', 'device10'];
 
     return (
         <Modal
