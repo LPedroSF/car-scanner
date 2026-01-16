@@ -5,15 +5,14 @@ import base64 from "react-native-base64";
 import { BleError, BleManager, Characteristic, Device, State } from "react-native-ble-plx";
 
 const bleManager = new BleManager();
+const OBD_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+const OBD_WRITE_UUID = "0000fff2-0000-1000-8000-00805f9b34fb";
+const OBD_NOTIFY_UUID = "0000fff1-0000-1000-8000-00805f9b34fb";
 
 export default function useBLE() {
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
     const [bleState, setBleState] = useState<State | null>(null);
-    const [obdServiceUUID, setObdServiceUUID] = useState<string | null>(null);
-    const [txUUID, setTxUUID] = useState<string | null>(null);
-    const [rxUUID, setRxUUID] = useState<string | null>(null);
-
 
     useEffect(() => {
         const subscription = bleManager.onStateChange(state => {
@@ -25,9 +24,6 @@ export default function useBLE() {
 
         return () => subscription.remove();
     }, []);
-
-
-
 
     //Request Permissions from Android users
     const requestAndroid31Permissions = async () => {
@@ -131,21 +127,6 @@ export default function useBLE() {
         });
     };
 
-    const startListening = (
-        device: Device,
-        serviceUUID: string,
-        rxUUID: string
-    ) => {
-        console.log("👂 Listening on RX:", rxUUID);
-
-        device.monitorCharacteristicForService(
-            serviceUUID,
-            rxUUID,
-            onDataUpdate
-        );
-    };
-
-
     const connectToDevice = async (device: Device) => {
         try {
             const deviceConnection = await bleManager.connectToDevice(device.id);
@@ -154,94 +135,79 @@ export default function useBLE() {
             await deviceConnection.discoverAllServicesAndCharacteristics();
             bleManager.stopDeviceScan();
 
-            const services = await deviceConnection.services();
-
-            let detectedService: string | null = null;
-            let detectedTX: string | null = null;
-            let detectedRX: string | null = null;
-
-            for (const service of services) {
-                const characteristics = await service.characteristics();
-
-                for (const char of characteristics) {
-                    if (
-                        char.isWritableWithResponse ||
-                        char.isWritableWithoutResponse
-                    ) {
-                        detectedTX = char.uuid;
-                        detectedService = service.uuid;
-                    }
-
-                    if (char.isNotifiable || char.isIndicatable) {
-                        detectedRX = char.uuid;
-                        detectedService = service.uuid;
-                    }
-                }
-            }
-
-            if (detectedService && detectedTX && detectedRX) {
-                setObdServiceUUID(detectedService);
-                setTxUUID(detectedTX);
-                setRxUUID(detectedRX);
-
-                console.log("✅ OBD SERVICE:", detectedService);
-                console.log("➡️ TX:", detectedTX);
-                console.log("⬅️ RX:", detectedRX);
-                console.log("👂 Listening on RX:", detectedRX);
-
-                startListening(deviceConnection, detectedService, detectedRX);
-                return;
-            } else {
-                console.log("❌ No OBD service found");
-            }
-
+            startStreamingData(deviceConnection);
 
         } catch (e) {
             console.log("FAILED TO CONNECT", e);
         }
     };
 
-    const sendOBDCommand = async (cmd: string) => {
-        if (!connectedDevice || !obdServiceUUID || !txUUID) {
-            console.log("❌ OBD not ready");
-            return;
-        }
+    const sendCommand = async (device: Device, command: string) => {
+        const base64Command = base64.encode(command);
 
-        const fullCmd = `${cmd}\r`;
-        const payload = base64.encode(fullCmd);
-
-        console.log("📤 Sending OBD:", fullCmd.trim());
-
-        await connectedDevice.writeCharacteristicWithoutResponseForService(
-            obdServiceUUID,
-            txUUID,
-            payload
+        await device.writeCharacteristicWithResponseForService(
+            OBD_SERVICE_UUID,
+            OBD_WRITE_UUID,
+            base64Command
         );
     };
+
+    const startStreamingData = async (device: Device) => {
+        if (device) {
+            device.monitorCharacteristicForService(
+                OBD_SERVICE_UUID,
+                OBD_NOTIFY_UUID,
+                onDataUpdate
+            );
+
+            setTimeout(() => {
+                initialiseOBD(device);
+            }, 500);
+
+        } else {
+            console.log("No Device Connected");
+        }
+    }
+
+    const initialiseOBD = async (device: Device) => {
+        const commands = [
+            "AT Z\r",   // reset
+            "AT E0\r",  // echo OFF
+            "AT L0\r",  // linefeeds OFF
+            "AT S0\r",  // spaces OFF
+            "AT RV\r",  // read voltage
+        ];
+
+        for (const cmd of commands) {
+            await sendCommand(device, cmd);
+            await new Promise(res => setTimeout(res, 300));
+        }
+    };
+
 
     const onDataUpdate = (
         error: BleError | null,
         characteristic: Characteristic | null
     ) => {
         if (error) {
-            console.log(error);
-            return;
-        } else if (!characteristic?.value) {
-            console.log("No Data was received");
+            console.log("❌ BLE error:", error);
             return;
         }
 
-        const colorCode = base64.decode(characteristic.value);
-        console.log("Data received:", colorCode);
+        if (!characteristic?.value) return;
+
+        const decoded = base64.decode(characteristic.value).trim();
+
+        console.log("📡 OBD RX:", decoded);
     };
 
     return {
         connectToDevice,
         requestPermissions,
         scanForPeripherals,
-        sendOBDCommand,
         bleState,
         allDevices,
         connectedDevice,
+
     };
 }
